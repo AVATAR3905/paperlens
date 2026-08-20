@@ -52,12 +52,35 @@ export async function embedQuery(text: string): Promise<number[]> {
 
 export async function embedBatch(texts: string[]): Promise<number[][]> {
   const results: number[][] = [];
-  const BATCH_SIZE = 20;
+  const DELAY_MS = 1000;
+  const MAX_RETRIES = 3;
 
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
-    const embeddings = await Promise.all(batch.map((text) => embedDocument(text)));
-    results.push(...embeddings);
+  for (let i = 0; i < texts.length; i++) {
+    let lastError: any;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          const backoff = Math.pow(2, attempt) * 2000;
+          console.log(`Retrying embedding ${i + 1}/${texts.length} after ${backoff}ms (attempt ${attempt + 1})`);
+          await new Promise((r) => setTimeout(r, backoff));
+        }
+        const embedding = await embedDocument(texts[i]);
+        results.push(embedding);
+        lastError = null;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (lastError) throw lastError;
+
+    if (i < texts.length - 1) {
+      await new Promise((r) => setTimeout(r, DELAY_MS));
+    }
   }
 
   return results;
