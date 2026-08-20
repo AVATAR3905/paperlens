@@ -112,10 +112,11 @@ router.post(
         pageCount,
         chunks: chunks.length,
       });
-    } catch (error) {
+    } catch (error: any) {
       await client.query("ROLLBACK");
       console.error("Error creating paper:", error);
-      res.status(500).json({ error: "Failed to process paper" });
+      const detail = error?.message || "Unknown error";
+      res.status(500).json({ error: `Failed to process paper: ${detail}` });
     } finally {
       client.release();
     }

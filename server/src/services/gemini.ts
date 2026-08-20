@@ -1,6 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.error("WARNING: GEMINI_API_KEY is not set. Embeddings and chat will fail.");
+}
+const ai = new GoogleGenAI({ apiKey: apiKey || "missing" });
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const CHAT_MODEL = "gemini-2.0-flash";

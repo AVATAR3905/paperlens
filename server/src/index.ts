@@ -18,6 +18,17 @@ app.use(express.json({ limit: "50mb" }));
 app.use("/api/papers", papersRouter);
 app.use("/api/chat", chatRouter);
 
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({ error: "File too large. Maximum size is 50MB." });
+  }
+  if (err.message === "Only PDF files are allowed") {
+    return res.status(400).json({ error: "Only PDF files are allowed." });
+  }
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: err.message || "Internal server error" });
+});
+
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.join(__dirname, "../../client/dist");
   if (fs.existsSync(clientDist)) {
