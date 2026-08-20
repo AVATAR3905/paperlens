@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, MessageSquare, BookOpen } from "lucide-react";
+import Markdown from "react-markdown";
 import { askQuestion, ChatResponse, Source, Paper } from "../lib/api";
 import { SourceCard } from "./SourceCard";
 import { cn } from "@/lib/utils";
@@ -151,8 +152,8 @@ export function ChatPanel({ paperId, papers }: ChatPanelProps) {
                   </span>
                 </div>
               )}
-              <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                {msg.content}
+              <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-emerald prose-code:bg-emerald/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-background/50 prose-pre:border prose-pre:border-border">
+                <Markdown>{msg.content}</Markdown>
               </div>
               {msg.sources && msg.sources.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-border/50">
