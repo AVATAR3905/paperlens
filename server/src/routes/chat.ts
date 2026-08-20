@@ -89,9 +89,10 @@ router.post("/", async (req: Request, res: Response) => {
     }));
 
     res.json({ answer, sources: allSources });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in chat:", error);
-    res.status(500).json({ error: "Failed to process question" });
+    const detail = error?.message || "Unknown error";
+    res.status(500).json({ error: `Failed to process question: ${detail}` });
   }
 });
 

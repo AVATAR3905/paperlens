@@ -21,62 +21,73 @@ function normalizeVector(vector: number[]): number[] {
 }
 
 export async function embedDocument(text: string): Promise<number[]> {
-  const result = await ai.models.embedContent({
-    model: EMBEDDING_MODEL,
-    contents: text,
-    config: {
-      taskType: "RETRIEVAL_DOCUMENT",
-      outputDimensionality: EMBEDDING_DIMENSIONS,
-    },
-  });
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        const backoff = Math.pow(2, attempt) * 2000;
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+      const result = await ai.models.embedContent({
+        model: EMBEDDING_MODEL,
+        contents: text,
+        config: {
+          taskType: "RETRIEVAL_DOCUMENT",
+          outputDimensionality: EMBEDDING_DIMENSIONS,
+        },
+      });
 
-  const values = result.embeddings?.[0]?.values;
-  if (!values) throw new Error("No embeddings returned from Gemini");
-  return normalizeVector(values);
+      const values = result.embeddings?.[0]?.values;
+      if (!values) throw new Error("No embeddings returned from Gemini");
+      return normalizeVector(values);
+    } catch (err: any) {
+      if ((err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) && attempt < MAX_RETRIES) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Failed to embed document after retries");
 }
 
 export async function embedQuery(text: string): Promise<number[]> {
-  const result = await ai.models.embedContent({
-    model: EMBEDDING_MODEL,
-    contents: text,
-    config: {
-      taskType: "RETRIEVAL_QUERY",
-      outputDimensionality: EMBEDDING_DIMENSIONS,
-    },
-  });
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        const backoff = Math.pow(2, attempt) * 2000;
+        console.log(`Retrying query embedding after ${backoff}ms (attempt ${attempt + 1})`);
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+      const result = await ai.models.embedContent({
+        model: EMBEDDING_MODEL,
+        contents: text,
+        config: {
+          taskType: "RETRIEVAL_QUERY",
+          outputDimensionality: EMBEDDING_DIMENSIONS,
+        },
+      });
 
-  const values = result.embeddings?.[0]?.values;
-  if (!values) throw new Error("No embeddings returned from Gemini");
-  return normalizeVector(values);
+      const values = result.embeddings?.[0]?.values;
+      if (!values) throw new Error("No embeddings returned from Gemini");
+      return normalizeVector(values);
+    } catch (err: any) {
+      if ((err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) && attempt < MAX_RETRIES) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Failed to embed query after retries");
 }
 
 export async function embedBatch(texts: string[]): Promise<number[][]> {
   const results: number[][] = [];
-  const DELAY_MS = 1000;
-  const MAX_RETRIES = 3;
+  const DELAY_MS = 1500;
 
   for (let i = 0; i < texts.length; i++) {
-    let lastError: any;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        if (attempt > 0) {
-          const backoff = Math.pow(2, attempt) * 2000;
-          console.log(`Retrying embedding ${i + 1}/${texts.length} after ${backoff}ms (attempt ${attempt + 1})`);
-          await new Promise((r) => setTimeout(r, backoff));
-        }
-        const embedding = await embedDocument(texts[i]);
-        results.push(embedding);
-        lastError = null;
-        break;
-      } catch (err: any) {
-        lastError = err;
-        if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
-          continue;
-        }
-        throw err;
-      }
-    }
-    if (lastError) throw lastError;
+    const embedding = await embedDocument(texts[i]);
+    results.push(embedding);
 
     if (i < texts.length - 1) {
       await new Promise((r) => setTimeout(r, DELAY_MS));
