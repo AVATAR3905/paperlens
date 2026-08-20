@@ -6,8 +6,8 @@ if (!apiKey) {
 }
 const ai = new GoogleGenAI({ apiKey: apiKey || "missing" });
 
-const EMBEDDING_MODEL = "gemini-embedding-001";
-const CHAT_MODEL = "gemini-2.0-flash";
+const EMBEDDING_MODEL = "gemini-embedding-2";
+const CHAT_MODEL = "gemini-3.6-flash";
 const EMBEDDING_DIMENSIONS = 768;
 
 function normalizeVector(vector: number[]): number[] {
